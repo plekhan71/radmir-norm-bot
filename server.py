@@ -54,7 +54,3 @@ def home():
     return jsonify({
         "text": result
     })
-
-
-
-app.run(host="0.0.0.0", port=3000)
