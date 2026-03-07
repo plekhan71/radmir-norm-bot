@@ -3,7 +3,7 @@ import vk_api
 import time
 import re
 
-TOKEN = vk1.a.oCwMFpkXoHq7gs04Rmv3OsoNym8xQW_KQV6DFfYLS8tviQ0jdqMOb3DMbfThS5zdQnwXx3-R5Sl1YwYai-r0F1M8JdEkcfFBwAmiOVXrDiHLLeeEiLyPdg4qVm4zq4Hg1-zEYHKLWfp2YKwm7EY5uBZduMytPY8p6syrRTKCc03HRlti8Cx1c9MjqStnL3EiHPZXlv0xgmL7D3jYCHnWkA
+TOKEN = "vk1.a.oCwMFpkXoHq7gs04Rmv3OsoNym8xQW_KQV6DFfYLS8tviQ0jdqMOb3DMbfThS5zdQnwXx3-R5Sl1YwYai-r0F1M8JdEkcfFBwAmiOVXrDiHLLeeEiLyPdg4qVm4zq4Hg1-zEYHKLWfp2YKwm7EY5uBZduMytPY8p6syrRTKCc03HRlti8Cx1c9MjqStnL3EiHPZXlv0xgmL7D3jYCHnWkA"
 PEER_ID = 176781096
 
 app = Flask(__name__)
@@ -54,6 +54,7 @@ def home():
     return jsonify({
         "text": result
     })
+
 
 
 app.run(host="0.0.0.0", port=3000)
