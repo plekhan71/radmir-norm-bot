@@ -6,6 +6,7 @@ import os
 import traceback
 
 TOKEN = os.getenv("VK_TOKEN")
+print("TOKEN:", TOKEN[:15])
 PEER_ID = int(os.getenv("PEER_ID", 176781096))
 
 app = Flask(__name__)
@@ -78,3 +79,4 @@ def home():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3000))
     app.run(host="0.0.0.0", port=port)
+
