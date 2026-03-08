@@ -30,10 +30,9 @@ def get_norm():
             "count": 5
         })
 
-        for msg in history["items"]:
+        # Проходим **от последнего к первому**, чтобы найти самый свежий блок "Зафиксированные данные"
+        for msg in reversed(history["items"]):
             text = msg["text"]
-
-            # Берём блок "Зафиксированные данные"
             if "Зафиксированные данные" in text:
                 report_match = re.search(r"REPORT = (\d+)", text)
                 z_match = re.search(r"/Z = (\d+)", text)
