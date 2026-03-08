@@ -17,57 +17,46 @@ vk._auth_token()
 
 def get_norm():
     try:
-        print("Отправляем команду /ast")
-
         vk.method("messages.send", {
             "peer_id": PEER_ID,
             "message": "/ast Roman_Plekhanov 12 0",
             "random_id": 0
         })
 
-        time.sleep(4)
-
-        print("Получаем историю сообщений")
+        time.sleep(3)
 
         history = vk.method("messages.getHistory", {
             "peer_id": PEER_ID,
-            "count": 10
+            "count": 5
         })
-
-        print("История сообщений:", history)
 
         for msg in history["items"]:
             text = msg["text"]
 
-            print("Сообщение:", text)
+            # Берём блок "Зафиксированные данные"
+            if "Зафиксированные данные" in text:
+                report_match = re.search(r"REPORT = (\d+)", text)
+                z_match = re.search(r"/Z = (\d+)", text)
+                online_match = re.search(r"ONLINE = ([\dчм ]+)", text)
 
-            if "REPORT" in text:
+                if report_match and z_match and online_match:
+                    report = int(report_match.group(1))
+                    z = int(z_match.group(1))
+                    online = online_match.group(1).strip()
 
-                m_report = re.search(r"REPORT\s*=\s*(\d+)", text)
-                m_z = re.search(r"/Z\s*=\s*(\d+)", text)
-                m_online = re.search(r"ONLINE\s*=\s*(.+)", text)
+                    total = report + z
+                    left = max(0, 100 - total)
 
-                if not m_report or not m_z or not m_online:
-                    return f"Нашёл REPORT сообщение, но не смог распарсить: {text}"
+                    if total >= 100:
+                        return f"У вас {total} ответов и онлайн {online}. Норма выполнена."
+                    else:
+                        return f"У вас {total} ответов и онлайн {online}. До нормы осталось {left} ответов."
 
-                report = int(m_report.group(1))
-                z = int(m_z.group(1))
-                online = m_online.group(1)
-
-                total = report + z
-
-                if total >= 100:
-                    return f"У вас {total} ответов и онлайн {online}. Норма выполнена."
-                else:
-                    left = 100 - total
-                    return f"У вас {total} ответов и онлайн {online}. До нормы осталось {left} ответов."
-
-        return "REPORT сообщение не найдено в последних сообщениях."
+        return "Не удалось получить данные о REPORT."
 
     except Exception as e:
-        print("ОШИБКА:")
         traceback.print_exc()
-        return f"Ошибка: {str(e)}"
+        return f"Произошла ошибка: {e}"
 
 
 @app.route("/", methods=["GET"])
