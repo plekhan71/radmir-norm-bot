@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, Response
-import requests
 import vk_api
 import time
 import re
@@ -8,7 +7,7 @@ import traceback
 import json
 
 TOKEN = os.getenv("VK_TOKEN")
-print("TOKEN:", TOKEN[:15])
+print("TOKEN:", TOKEN[:15] if TOKEN else "NO TOKEN")
 
 PEER_ID = int(os.getenv("PEER_ID", 176781096))
 
@@ -17,53 +16,80 @@ app = Flask(__name__)
 vk = vk_api.VkApi(token=TOKEN)
 vk._auth_token()
 
+# Кэш ответа (чтобы Алиса не спамила /ast)
+last_result = None
+last_time = 0
+
 
 def get_norm():
+    global last_result, last_time
+
     try:
+
+        # если запрос был недавно — возвращаем кэш
+        if time.time() - last_time < 10 and last_result:
+            return last_result
+
         # Отправляем команду боту
         vk.method("messages.send", {
             "peer_id": PEER_ID,
             "message": "/ast Roman_Plekhanov 12 0",
-            "random_id": 0
+            "random_id": int(time.time())
         })
 
-        time.sleep(3)
+        # ждём ответ до 8 секунд
+        for _ in range(8):
 
-        history = vk.method("messages.getHistory", {
-            "peer_id": PEER_ID,
-            "count": 5
-        })
+            history = vk.method("messages.getHistory", {
+                "peer_id": PEER_ID,
+                "count": 5
+            })
 
-        for msg in history["items"]:
-            text = msg["text"]
+            # проверяем новые сообщения сначала
+            for msg in reversed(history["items"]):
 
-            if "Зафиксированные данные" in text:
+                text = msg["text"]
 
-                data_part = text.split("Зафиксированные данные")[1]
+                if "Зафиксированные данные" in text:
 
-                report_match = re.search(r"REPORT\s*=\s*(\d+)", data_part)
-                z_match = re.search(r"/Z\s*=\s*(\d+)", data_part)
-                online_match = re.search(r"ONLINE\s*=\s*([\dчм ]+)", data_part)
+                    data_part = text.split("Зафиксированные данные")[1]
 
-                if report_match and z_match and online_match:
+                    report_match = re.search(r"REPORT\s*=\s*(\d+)", data_part)
+                    z_match = re.search(r"/Z\s*=\s*(\d+)", data_part)
+                    online_match = re.search(r"ONLINE\s*=\s*([\dчм ]+)", data_part)
 
-                    report = int(report_match.group(1))
-                    z = int(z_match.group(1))
-                    online = online_match.group(1).strip()
+                    if report_match and z_match and online_match:
 
-                    total = report + z
+                        report = int(report_match.group(1))
+                        z = int(z_match.group(1))
+                        online = online_match.group(1).strip()
 
-                    hours_match = re.search(r"(\d+)ч", online)
-                    hours = int(hours_match.group(1)) if hours_match else 0
+                        total = report + z
 
-                    if total >= 100 and hours >= 3:
-                        return f"Норма выполнена! У вас {total} (Z+Rep) и онлайн {online}."
-                    else:
-                        rep_left = max(0, 100 - total)
-                        time_left = "и нужно еще поднять онлайн до 3 часов" if hours < 3 else ""
-                        return f"У вас {total} ответов и онлайн {online}. До нормы осталось {rep_left} ответов {time_left}"
+                        hours_match = re.search(r"(\d+)ч", online)
+                        hours = int(hours_match.group(1)) if hours_match else 0
 
-        return "Не удалось найти сообщение с данными."
+                        if total >= 100 and hours >= 3:
+
+                            last_result = f"Норма выполнена! У вас {total} (Z+Rep) и онлайн {online}."
+                            last_time = time.time()
+                            return last_result
+
+                        else:
+
+                            rep_left = max(0, 100 - total)
+
+                            time_left = ""
+                            if hours < 3:
+                                time_left = " и нужно ещё поднять онлайн до 3 часов"
+
+                            last_result = f"У вас {total} ответов и онлайн {online}. До нормы осталось {rep_left} ответов{time_left}"
+                            last_time = time.time()
+                            return last_result
+
+            time.sleep(1)
+
+        return "Не удалось получить свежие данные от бота."
 
     except Exception as e:
         traceback.print_exc()
@@ -71,11 +97,12 @@ def get_norm():
 
 
 # -------------------------------
-# ТВОЙ API (как было раньше)
+# API
 # -------------------------------
 
 @app.route("/", methods=["GET"])
 def home():
+
     result = get_norm()
 
     return Response(
@@ -106,7 +133,7 @@ def alice():
 
         return jsonify(response)
 
-    except Exception as e:
+    except Exception:
 
         traceback.print_exc()
 
