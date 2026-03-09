@@ -1,4 +1,5 @@
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
+import requests
 import vk_api
 import time
 import re
@@ -79,3 +80,19 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3000))
     app.run(host="0.0.0.0", port=port)
 
+@app.route("/alice", methods=["POST"])
+def alice():
+
+    # запрос к твоему API с нормой
+    r = requests.get("https://ТВОЙ-ПРОЕКТ.up.railway.app/")
+    data = r.json()
+
+    text = data["text"]
+
+    return jsonify({
+        "version": "1.0",
+        "response": {
+            "text": text,
+            "end_session": False
+        }
+    })
